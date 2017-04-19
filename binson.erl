@@ -55,6 +55,9 @@ encode(Bytes) when is_binary(Bytes) ->
     end;
      
 %%------ Composites encoding ------
+% Workaround required for EQC mini (no tuple generator in eqc_gen) 
+encode({array, Array_list}) -> encode(list_to_tuple(Array_list));
+
 encode(Array) when is_tuple(Array)-> 
     Array_list = tuple_to_list(Array),
     Array_data = encode_array(Array_list, <<>>),
@@ -83,10 +86,10 @@ encode_array([Value|Tail], Acc) ->
 decode(<<?TRUE,  Rest/binary>>) -> {true, Rest};
 decode(<<?FALSE, Rest/binary>>) -> {false, Rest};
 
-decode(<<?INT8,  Int:8/integer-little,  Rest/binary>>) -> {Int, Rest};
-decode(<<?INT16, Int:16/integer-little, Rest/binary>>) -> {Int, Rest};
-decode(<<?INT32, Int:32/integer-little, Rest/binary>>) -> {Int, Rest};
-decode(<<?INT64, Int:64/integer-little, Rest/binary>>) -> {Int, Rest};
+decode(<<?INT8,  Int:8/signed-integer-little,  Rest/binary>>) -> {Int, Rest};
+decode(<<?INT16, Int:16/signed-integer-little, Rest/binary>>) -> {Int, Rest};
+decode(<<?INT32, Int:32/signed-integer-little, Rest/binary>>) -> {Int, Rest};
+decode(<<?INT64, Int:64/signed-integer-little, Rest/binary>>) -> {Int, Rest};
 
 decode(<<?DOUBLE, Float/float-little, Rest/binary>>) -> {Float, Rest};
 
