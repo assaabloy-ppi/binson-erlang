@@ -24,59 +24,52 @@
 -define(BOUND32, (1 bsl 31)).
 
 %%------ Primitives encoding ------
-encode(true)  -> <<?TRUE/integer>>;
-encode(false) -> <<?FALSE/integer>>;
+encode(true)  -> <<?TRUE>>;
+encode(false) -> <<?FALSE>>;
 
 encode(Int) when is_integer(Int) ->
     if 
-        Int >= -?BOUND8  andalso Int < ?BOUND8  -> <<?INT8/integer,  Int:8/integer-little>>;
-        Int >= -?BOUND16 andalso Int < ?BOUND16 -> <<?INT16/integer, Int:16/integer-little>>;
-        Int >= -?BOUND32 andalso Int < ?BOUND32 -> <<?INT32/integer, Int:32/integer-little>>;
-        true                                    -> <<?INT64/integer, Int:64/integer-little>>
+        Int >= -?BOUND8  andalso Int < ?BOUND8  -> <<?INT8,  Int:8/integer-little>>;
+        Int >= -?BOUND16 andalso Int < ?BOUND16 -> <<?INT16, Int:16/integer-little>>;
+        Int >= -?BOUND32 andalso Int < ?BOUND32 -> <<?INT32, Int:32/integer-little>>;
+        true                                    -> <<?INT64, Int:64/integer-little>>
     end;
 
-encode(Float) when is_float(Float) -> <<?DOUBLE/integer, Float/float-little>>;
+encode(Float) when is_float(Float) -> <<?DOUBLE, Float/float-little>>;
 
 encode(String) when is_list(String) -> 
-    Len = length(String),
     Binary = list_to_binary(String), 
+    Len = byte_size(Binary),
     if
-        Len < 16#100   -> <<?STR_LEN8/integer,  Len:8/integer-little,  Binary/binary>>;
-        Len < 16#10000 -> <<?STR_LEN16/integer, Len:16/integer-little, Binary/binary>>;
-        true           -> <<?STR_LEN32/integer, Len:32/integer-little, Binary/binary>>
+        Len < 16#100   -> <<?STR_LEN8,  Len:8/integer-little,  Binary/binary>>;
+        Len < 16#10000 -> <<?STR_LEN16, Len:16/integer-little, Binary/binary>>;
+        true           -> <<?STR_LEN32, Len:32/integer-little, Binary/binary>>
     end;
 
 encode(Bytes) when is_binary(Bytes) -> 
     Len = byte_size(Bytes),
     if
-        Len < 16#100   -> <<?BYTE_LEN8/integer,  Len:8/integer-little,  Bytes/binary>>;
-        Len < 16#10000 -> <<?BYTE_LEN16/integer, Len:16/integer-little, Bytes/binary>>;
-        true           -> <<?BYTE_LEN32/integer, Len:32/integer-little, Bytes/binary>>
+        Len < 16#100   -> <<?BYTE_LEN8,  Len:8/integer-little,  Bytes/binary>>;
+        Len < 16#10000 -> <<?BYTE_LEN16, Len:16/integer-little, Bytes/binary>>;
+        true           -> <<?BYTE_LEN32, Len:32/integer-little, Bytes/binary>>
     end;
      
 %%------ Composites encoding ------
-% Workaround required for EQC mini (no tuple generator in eqc_gen) 
-encode({array, Array_list}) -> encode(list_to_tuple(Array_list));
-
-encode(Array) when is_tuple(Array)-> 
-    Array_list = tuple_to_list(Array),
-    Array_data = encode_array(Array_list, <<>>),
-    <<?BEGIN_ARR/integer, Array_data/binary, ?END_ARR/integer>>;
-
+encode({array, Array_list}) -> encode_array(Array_list, <<?BEGIN_ARR>>);
+encode(Array) when is_tuple(Array)-> encode_array(tuple_to_list(Array), <<?BEGIN_ARR>>);
+ 
 encode(Object) when is_map(Object)-> 
-    Fields = lists:sort(maps:keys(Object)),
-    Obj_data = encode_object(Fields, Object, <<>>),
-    <<?BEGIN/integer, Obj_data/binary, ?END/integer>>.
+    Sorted_list = lists:keysort(1, maps:to_list(Object)),
+    encode_object(Sorted_list, <<?BEGIN>>).
 
 %%------ Composites encoding additional functions ------
-encode_object([], _Object, Acc) -> Acc;
-encode_object([Key|Tail], Object, Acc) ->
-    Value = maps:get(Key, Object),
+encode_object([], Acc) -> <<Acc/binary, ?END>>;
+encode_object([{Key, Value}|Tail], Acc) ->
     Key_data = encode(Key),
     Value_data = encode(Value),
-    encode_object(Tail, Object, <<Acc/binary, Key_data/binary, Value_data/binary>>).
+    encode_object(Tail, <<Acc/binary, Key_data/binary, Value_data/binary>>).
 
-encode_array([], Acc) -> Acc;
+encode_array([], Acc) -> <<Acc/binary, ?END_ARR>>;
 encode_array([Value|Tail], Acc) ->
     Value_data = encode(Value),
     encode_array(Tail, <<Acc/binary, Value_data/binary>>).
