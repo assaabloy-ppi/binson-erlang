@@ -3,7 +3,7 @@
  - Binson module for Elixir.
  - Erlang QuickCheck-mini model for binson-c-light testing using Erlang Binson implementation as reference.
  
-##Binson module for Erlang
+## Binson module for Erlang  
  Encoding function:
  
 
@@ -43,7 +43,7 @@ Bytes -> Erlang binaries, example: <<1,2,3>>.
 Array -> Erlang tuples, example: {1, "abc", {"sub", 1.0}}.  
 Object -> Erlang maps, example: #{"field1" => "A", "field2" => {1,2,3}}.   
 	
-##Binson module for Elixir
+## Binson module for Elixir
  Encoding function:
  
 
@@ -82,7 +82,7 @@ Bytes -> Elixir binaries in :bin tagged tuple, example: {:bin, <<1,2,3>>}.
 Array -> Elixir lists, example: [1, "abc", ["sub", 1.0]].  
 Object -> Elixir maps, example: %{"field1" => "A", "field2" => [1,2,3]}.   
  
-##How to run Erlang QuickCheck test?
+## How to run Erlang QuickCheck test?
 
 - Install Erlang.
 - Install Erlang QuickCheck mini from http://www.quviq.com/downloads/
