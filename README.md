@@ -1,7 +1,11 @@
 # binson-erlang
+
+This repo is an implementation of Binson (see [binson.org](http://binson.org/)) in Erlang.
+
  - Binson module for Erlang.
  - Binson module for Elixir.
  - Erlang QuickCheck-mini model for binson-c-light testing using Erlang Binson implementation as reference.
+ 
  
 ## Binson module for Erlang  
  Encoding function:
