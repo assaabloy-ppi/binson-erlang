@@ -140,8 +140,8 @@ static ERL_NIF_TERM parser_result(ErlNifEnv* env)
             return enif_make_atom(env, "error:BINSON_ID_BUF_FULL");
         case BINSON_ID_PARSE_NO_FIELD_NAME:
             return enif_make_atom(env, "error:BINSON_ID_PARSE_NO_FIELD_NAME");
-        case BINSON_ID_PARSE_END_OF_OBJECT:
-            return enif_make_atom(env, "error:BINSON_ID_PARSE_END_OF_OBJECT");
+        case BINSON_ID_PARSE_BLOCK_ENDED:
+            return enif_make_atom(env, "error:BINSON_ID_PARSE_BLOCK_ENDED");
         case BINSON_ID_PARSE_WRONG_STATE:
             return enif_make_atom(env, "error:BINSON_ID_PARSE_WRONG_STATE");
         case BINSON_ID_PARSE_WRONG_TYPE:
@@ -165,6 +165,18 @@ static ERL_NIF_TERM parser_init(ErlNifEnv* env, int argc, const ERL_NIF_TERM arg
     binson_parser_init(&p, parser_buf, bin.size);
     
     return enif_make_atom(env, "ok");
+}
+
+static ERL_NIF_TERM parser_go_into(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    binson_parser_go_into(&p);
+    return parser_result(env);
+}
+
+static ERL_NIF_TERM parser_go_up(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    binson_parser_go_up(&p);
+    return parser_result(env);
 }
 
 static ERL_NIF_TERM parser_go_into_object(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
@@ -283,6 +295,8 @@ static ErlNifFunc nif_funcs[] =
     {"writer_get_counter", 0, writer_get_counter},
     {"writer_get_buf", 0, writer_get_buf},
     {"parser_init", 1, parser_init},
+    {"parser_go_into", 0, parser_go_into},
+    {"parser_go_up", 0, parser_go_up},
     {"parser_go_into_object", 0, parser_go_into_object},
     {"parser_go_upto_object", 0, parser_go_upto_object},
     {"parser_go_into_array", 0, parser_go_into_array},

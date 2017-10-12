@@ -5,7 +5,8 @@
     write_boolean/1, write_integer/1, write_double/1, write_string/1, write_bytes/1,
     write_array_begin/0, write_array_end/0, write_object_begin/0, write_object_end/0,
     writer_get_counter/0, writer_get_buf/0,
-    parser_init/1, parser_go_into_object/0, parser_go_upto_object/0,
+    parser_init/1, parser_go_into/0, parser_go_up/0,
+    parser_go_into_object/0, parser_go_upto_object/0,
     parser_go_into_array/0, parser_go_upto_array/0,
     parser_field/1, parser_next_array_value/0, 
     parser_get_boolean/0, parser_get_integer/0, parser_get_double/0,
@@ -28,6 +29,8 @@ write_object_end()          -> nif_error().
 writer_get_counter()        -> nif_error().
 writer_get_buf()            -> nif_error().
 parser_init(_)              -> nif_error().
+parser_go_into()            -> nif_error().
+parser_go_up()              -> nif_error().
 parser_go_into_object()     -> nif_error().
 parser_go_upto_object()     -> nif_error().
 parser_go_into_array()      -> nif_error().
