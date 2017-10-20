@@ -28,7 +28,7 @@ encode(true)  -> <<?TRUE>>;
 encode(false) -> <<?FALSE>>;
 
 encode(Int) when is_integer(Int) ->
-    if 
+    if
         Int >= -?BOUND8  andalso Int < ?BOUND8  -> <<?INT8,  Int:8/integer-little>>;
         Int >= -?BOUND16 andalso Int < ?BOUND16 -> <<?INT16, Int:16/integer-little>>;
         Int >= -?BOUND32 andalso Int < ?BOUND32 -> <<?INT32, Int:32/integer-little>>;
@@ -37,28 +37,28 @@ encode(Int) when is_integer(Int) ->
 
 encode(Float) when is_float(Float) -> <<?DOUBLE, Float/float-little>>;
 
-encode(String) when is_list(String) -> 
-    Binary = list_to_binary(String), 
+encode(String) when is_list(String) ->
+    Binary = list_to_binary(String),
     Len = byte_size(Binary),
     if
-        Len < 16#100   -> <<?STR_LEN8,  Len:8/integer-little,  Binary/binary>>;
-        Len < 16#10000 -> <<?STR_LEN16, Len:16/integer-little, Binary/binary>>;
+        Len < ?BOUND8  -> <<?STR_LEN8,  Len:8/integer-little,  Binary/binary>>;
+        Len < ?BOUND16 -> <<?STR_LEN16, Len:16/integer-little, Binary/binary>>;
         true           -> <<?STR_LEN32, Len:32/integer-little, Binary/binary>>
     end;
 
-encode(Bytes) when is_binary(Bytes) -> 
+encode(Bytes) when is_binary(Bytes) ->
     Len = byte_size(Bytes),
     if
-        Len < 16#100   -> <<?BYTE_LEN8,  Len:8/integer-little,  Bytes/binary>>;
-        Len < 16#10000 -> <<?BYTE_LEN16, Len:16/integer-little, Bytes/binary>>;
+        Len < ?BOUND8  -> <<?BYTE_LEN8,  Len:8/integer-little,  Bytes/binary>>;
+        Len < ?BOUND16 -> <<?BYTE_LEN16, Len:16/integer-little, Bytes/binary>>;
         true           -> <<?BYTE_LEN32, Len:32/integer-little, Bytes/binary>>
     end;
-     
+
 %%------ Composites encoding ------
 encode({array, Array_list}) -> encode_array(Array_list, <<?BEGIN_ARR>>);
 encode(Array) when is_tuple(Array)-> encode_array(tuple_to_list(Array), <<?BEGIN_ARR>>);
- 
-encode(Object) when is_map(Object)-> 
+
+encode(Object) when is_map(Object)->
     Sorted_list = lists:keysort(1, maps:to_list(Object)),
     encode_object(Sorted_list, <<?BEGIN>>).
 

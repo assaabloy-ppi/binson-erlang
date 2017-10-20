@@ -3,6 +3,9 @@
 -export([writer_test/1, parser_test/1, parser_retest/0]).
 
 -define(MAX_BINSON_LEN, 16#ffff).
+-define(BOUND8,  (1 bsl 7)).
+-define(BOUND16, (1 bsl 15)).
+-define(BOUND32, (1 bsl 31)).
 
 object_gen()     -> ?SIZED(Size, object_gen(Size)).
 object_gen(0)    -> eqc_gen:map(string_gen(), primitive_gen());
@@ -12,11 +15,16 @@ value_gen(Size) -> frequency([{5, primitive_gen()},
                            {1, {array, array_gen(Size)}},
                            {1, object_gen(Size)}]).
 
-primitive_gen() -> oneof([bool(), integer_gen(), real(), string_gen(), binary()]).
+primitive_gen() -> oneof([bool(), integer_gen(), real(), string_gen(), binary_gen()]).
 
-integer_gen()   -> oneof([int(), largeint()]).
+integer_gen() -> oneof([choose(-?BOUND8, ?BOUND8),
+                        choose(-?BOUND16, ?BOUND16),
+                        choose(-?BOUND32, ?BOUND32),
+                        largeint()]).
 
-string_gen()    -> non_empty(list(choose($A, $Z))).
+size_gen() -> oneof([nat(), choose(1, ?BOUND8+10)]).
+string_gen()  -> ?LET(S, size_gen(), noshrink(vector(S+1, choose($A, $Z)))).
+binary_gen()  -> ?LET(S, size_gen(), noshrink(largebinary(S+1))).
 
 array_gen(0)    -> [primitive_gen()];
 array_gen(Size) -> list(value_gen(Size div 2)).
