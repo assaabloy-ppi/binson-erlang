@@ -24,7 +24,7 @@ integer_gen() -> oneof([choose(-?BOUND8, ?BOUND8),
 
 size_gen() -> oneof([nat(), choose(1, ?BOUND8+10)]).
 string_gen()  -> ?LET(S, size_gen(), noshrink(vector(S+1, choose($A, $Z)))).
-binary_gen()  -> ?LET(S, size_gen(), noshrink(largebinary(S+1))).
+binary_gen()  -> ?LET(S, size_gen(), noshrink(binary(S+1))).
 
 array_gen(0)    -> [primitive_gen()];
 array_gen(Size) -> list(value_gen(Size div 2)).
