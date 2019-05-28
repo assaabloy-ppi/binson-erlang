@@ -73,20 +73,20 @@ parser_compare(Bytes)  when is_binary(Bytes) -> Bytes =:= binson_nif:parser_get_
 parser_compare({array, Array_list}) ->
     ok = binson_nif:parser_go_into_array(),
     Res = lists:all(fun(Elem) ->
-                binson_nif:parser_next_array_value(),
+                binson_nif:parser_next(),
                 parser_compare(Elem)
               end, Array_list),
-    ok = binson_nif:parser_go_up(),
+    ok = binson_nif:parser_leave_array(),
     Res;
 
 parser_compare(Object) when is_map(Object)->
-    ok = binson_nif:parser_go_into(),
+    ok = binson_nif:parser_go_into_object(),
     Fields = lists:sort(maps:keys(Object)),
     Res = lists:all(fun(Field) ->
                 ok = binson_nif:parser_field(Field),
                 parser_compare(maps:get(Field, Object))
               end, Fields),
-    ok = binson_nif:parser_go_up(),
+    ok = binson_nif:parser_leave_object(),
     Res.
 
 parser_check(Value) ->

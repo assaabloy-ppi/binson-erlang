@@ -3,14 +3,15 @@
 #include "binson_light.h"
 
 #define MAX_WRITER_BUF (65536)
+#define MAX_PARSER_DEPTH (10)
 
 uint8_t        writer_buf[MAX_WRITER_BUF];
 binson_writer  w;
 
 uint8_t        parser_buf[MAX_WRITER_BUF];
 binson_parser  p;
+binson_state   parser_states[MAX_PARSER_DEPTH];
 
- 
 static ERL_NIF_TERM ver(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     return enif_make_string(env, "Binson Light NIF!", ERL_NIF_LATIN1);
@@ -30,20 +31,20 @@ static ERL_NIF_TERM writer_reset(ErlNifEnv* env, int argc, const ERL_NIF_TERM ar
 
 static ERL_NIF_TERM write_integer(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    ErlNifSInt64 eval; 
-    
-    if (!enif_get_int64(env, argv[0], &eval)) return enif_make_badarg(env);  
-    
+    ErlNifSInt64 eval;
+
+    if (!enif_get_int64(env, argv[0], &eval)) return enif_make_badarg(env);
+
     binson_write_integer(&w, eval);
     return enif_make_atom(env, "ok");
 }
 
 static ERL_NIF_TERM write_boolean(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    int eval; 
-    
+    int eval;
+
     if (!enif_get_int(env, argv[0], &eval)) return enif_make_badarg(env);
-   
+
     if (eval) binson_write_boolean(&w, true);
     else      binson_write_boolean(&w, false);
 
@@ -52,24 +53,24 @@ static ERL_NIF_TERM write_boolean(ErlNifEnv* env, int argc, const ERL_NIF_TERM a
 
 static ERL_NIF_TERM write_double(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    double eval; 
-    
-    if (!enif_get_double(env, argv[0], &eval)) return enif_make_badarg(env);  
-    
+    double eval;
+
+    if (!enif_get_double(env, argv[0], &eval)) return enif_make_badarg(env);
+
     binson_write_double(&w, eval);
     return enif_make_atom(env, "ok");
 }
 
 static ERL_NIF_TERM write_string(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    unsigned int len; 
+    unsigned int len;
     char* string_val;
-    
-    if (!enif_get_list_length(env, argv[0], &len)) return enif_make_badarg(env);  
-    len++; 
-    
+
+    if (!enif_get_list_length(env, argv[0], &len)) return enif_make_badarg(env);
+    len++;
+
     if (!(string_val = malloc(len))) return enif_make_atom(env, "no_mem");
-    
+
     enif_get_string(env, argv[0], string_val, len, ERL_NIF_LATIN1);
     binson_write_string(&w, string_val);
     free(string_val);
@@ -81,9 +82,9 @@ static ERL_NIF_TERM write_bytes(ErlNifEnv* env, int argc, const ERL_NIF_TERM arg
     ErlNifBinary bin;
     uint8_t* bin_data;
 
-    if (!enif_inspect_binary(env, argv[0], &bin)) return enif_make_badarg(env);  
+    if (!enif_inspect_binary(env, argv[0], &bin)) return enif_make_badarg(env);
     if (!(bin_data = malloc(bin.size)))  return enif_make_atom(env, "no_mem");
-    
+
     memcpy(bin_data, bin.data, bin.size);
     binson_write_bytes(&w, bin_data, bin.size);
     free(bin_data);
@@ -124,9 +125,9 @@ static ERL_NIF_TERM writer_get_counter(ErlNifEnv* env, int argc, const ERL_NIF_T
 static ERL_NIF_TERM writer_get_buf(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     ErlNifBinary binary;
-    int size = binson_writer_get_counter( &w );   
-    if (!enif_alloc_binary(size, &binary)) return enif_make_atom(env, "no_mem");  
-    memcpy(binary.data, writer_buf, size);   
+    int size = binson_writer_get_counter( &w );
+    if (!enif_alloc_binary(size, &binary)) return enif_make_atom(env, "no_mem");
+    memcpy(binary.data, writer_buf, size);
     return enif_make_binary(env, &binary);
 }
 
@@ -134,22 +135,26 @@ static ERL_NIF_TERM parser_result(ErlNifEnv* env)
 {
     switch (p.error_flags)
     {
-        case BINSON_ID_OK:
+        case BINSON_ERROR_NONE:
             return enif_make_atom(env, "ok");
-        case BINSON_ID_BUF_FULL:
-            return enif_make_atom(env, "error:BINSON_ID_BUF_FULL");
-        case BINSON_ID_PARSE_NO_FIELD_NAME:
-            return enif_make_atom(env, "error:BINSON_ID_PARSE_NO_FIELD_NAME");
-        case BINSON_ID_PARSE_BLOCK_ENDED:
-            return enif_make_atom(env, "error:BINSON_ID_PARSE_BLOCK_ENDED");
-        case BINSON_ID_PARSE_WRONG_STATE:
-            return enif_make_atom(env, "error:BINSON_ID_PARSE_WRONG_STATE");
-        case BINSON_ID_PARSE_WRONG_TYPE:
-            return enif_make_atom(env, "error:BINSON_ID_PARSE_WRONG_TYPE");
-        case BINSON_ID_PARSE_BAD_LEN:
-            return enif_make_atom(env, "error:BINSON_ID_PARSE_BAD_LEN");
-        case BINSON_ID_PARSE_END_OF_BUFFER:
-            return enif_make_atom(env, "error:BINSON_ID_PARSE_END_OF_BUFFER");
+        case BINSON_ERROR_RANGE:
+            return enif_make_atom(env, "error:BINSON_ERROR_RANGE");
+        case BINSON_ERROR_FORMAT:
+            return enif_make_atom(env, "error:BINSON_ERROR_FORMAT");
+        case BINSON_ERROR_EOF:
+            return enif_make_atom(env, "error:BINSON_ERROR_EOF");
+        case BINSON_ERROR_END_OF_BLOCK:
+            return enif_make_atom(env, "error:BINSON_ERROR_END_OF_BLOCK");
+        case BINSON_ERROR_NULL:
+            return enif_make_atom(env, "error:BINSON_ERROR_NULL");
+        case BINSON_ERROR_STATE:
+            return enif_make_atom(env, "error:BINSON_ERROR_STATE");
+        case BINSON_ERROR_WRONG_TYPE:
+            return enif_make_atom(env, "error:BINSON_ERROR_WRONG_TYPE");
+        case BINSON_ERROR_MAX_DEPTH_OBJECT:
+            return enif_make_atom(env, "error:BINSON_ERROR_MAX_DEPTH_OBJECT");
+        case BINSON_ERROR_MAX_DEPTH_ARRAY:
+            return enif_make_atom(env, "error:BINSON_ERROR_MAX_DEPTH_ARRAY");
         default:
             return enif_make_atom(env, "error:other");
     }
@@ -158,25 +163,16 @@ static ERL_NIF_TERM parser_result(ErlNifEnv* env)
 static ERL_NIF_TERM parser_init(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     ErlNifBinary bin;
- 
+
     if (!enif_inspect_binary(env, argv[0], &bin)) return enif_make_badarg(env);
- 
+
     memcpy(parser_buf, bin.data, bin.size);
+
+    p.state = parser_states;
+    p.max_depth = MAX_PARSER_DEPTH;
     binson_parser_init(&p, parser_buf, bin.size);
-    
+
     return enif_make_atom(env, "ok");
-}
-
-static ERL_NIF_TERM parser_go_into(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
-{
-    binson_parser_go_into(&p);
-    return parser_result(env);
-}
-
-static ERL_NIF_TERM parser_go_up(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
-{
-    binson_parser_go_up(&p);
-    return parser_result(env);
 }
 
 static ERL_NIF_TERM parser_go_into_object(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
@@ -185,9 +181,9 @@ static ERL_NIF_TERM parser_go_into_object(ErlNifEnv* env, int argc, const ERL_NI
     return parser_result(env);
 }
 
-static ERL_NIF_TERM parser_go_upto_object(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+static ERL_NIF_TERM parser_leave_object(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    binson_parser_go_upto_object(&p);
+    binson_parser_leave_object(&p);
     return parser_result(env);
 }
 
@@ -197,47 +193,47 @@ static ERL_NIF_TERM parser_go_into_array(ErlNifEnv* env, int argc, const ERL_NIF
     return parser_result(env);
 }
 
-static ERL_NIF_TERM parser_go_upto_array(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+static ERL_NIF_TERM parser_leave_array(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    binson_parser_go_upto_array(&p);
+    binson_parser_leave_array(&p);
     return parser_result(env);
 }
 
 static ERL_NIF_TERM parser_field(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    unsigned int len; 
+    unsigned int len;
     char* string_val;
-    
-    if (!enif_get_list_length(env, argv[0], &len)) return enif_make_badarg(env);  
-    len++; 
-    
+
+    if (!enif_get_list_length(env, argv[0], &len)) return enif_make_badarg(env);
+    len++;
+
     if (!(string_val = malloc(len))) return enif_make_atom(env, "no_mem");
-    
-    enif_get_string(env, argv[0], string_val, len, ERL_NIF_LATIN1); 
+
+    enif_get_string(env, argv[0], string_val, len, ERL_NIF_LATIN1);
     binson_parser_field(&p, string_val);
     free(string_val);
-    
+
     return parser_result(env);
 }
 
-static ERL_NIF_TERM parser_next_array_value(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+static ERL_NIF_TERM parser_next(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    binson_parser_next_array_value(&p);
+    binson_parser_next(&p);
     return parser_result(env);
 }
 
 static ERL_NIF_TERM parser_get_boolean(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     uint8_t int_val = binson_parser_get_boolean(&p);
-        
-    if (BINSON_ID_OK == p.error_flags) return enif_make_int(env, int_val); 
+
+    if (BINSON_ID_OK == p.error_flags) return enif_make_int(env, int_val);
     else return parser_result(env);
 }
 
 static ERL_NIF_TERM parser_get_integer(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     int64_t int_val = binson_parser_get_integer(&p);
-    
+
     if (BINSON_ID_OK == p.error_flags) return enif_make_int64(env, int_val);
     else return parser_result(env);
 }
@@ -245,39 +241,30 @@ static ERL_NIF_TERM parser_get_integer(ErlNifEnv* env, int argc, const ERL_NIF_T
 static ERL_NIF_TERM parser_get_double(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     double int_val = binson_parser_get_double(&p);
-    
+
     if (BINSON_ID_OK == p.error_flags) return enif_make_double(env, int_val);
     else return parser_result(env);
 }
 
 static ERL_NIF_TERM parser_get_string_copy(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    char* string_val;
-    binson_tok_size len = binson_parser_get_string_len(&p)+1;
-    
-    if (!(string_val = malloc(len))) return enif_make_atom(env, "no_mem");
-    
-    binson_parser_get_string_copy(&p, string_val);
-    ERL_NIF_TERM ret_string = enif_make_string(env, string_val, ERL_NIF_LATIN1);
-    free(string_val);
-    return ret_string;
+  bbuf* buf = binson_parser_get_string_bbuf(&p);
+  ERL_NIF_TERM ret_string = enif_make_string_len(env, buf->bptr, buf->bsize, ERL_NIF_LATIN1);
+  return ret_string;
 }
 
 static ERL_NIF_TERM parser_get_bytes_copy(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     ErlNifBinary binary;
-    bbuf src_buf;
+    bbuf* buf = binson_parser_get_bytes_bbuf(&p);
+    size_t len = buf->bsize;
 
-    binson_tok_size len = binson_parser_get_bytes_len(&p);
-
-    if (!enif_alloc_binary(len, &binary)) return enif_make_atom(env, "no_mem");  
-    
-    src_buf.bsize = len; src_buf.bptr  = binary.data;
-    binson_parser_get_bytes_copy(&p, &src_buf);
+    if (!enif_alloc_binary(len, &binary)) return enif_make_atom(env, "no_mem");
+    memcpy(binary.data, buf->bptr, len);
 
     return enif_make_binary(env, &binary);
 }
-    
+
 static ErlNifFunc nif_funcs[] =
 {
     {"ver", 0, ver},
@@ -295,14 +282,12 @@ static ErlNifFunc nif_funcs[] =
     {"writer_get_counter", 0, writer_get_counter},
     {"writer_get_buf", 0, writer_get_buf},
     {"parser_init", 1, parser_init},
-    {"parser_go_into", 0, parser_go_into},
-    {"parser_go_up", 0, parser_go_up},
     {"parser_go_into_object", 0, parser_go_into_object},
-    {"parser_go_upto_object", 0, parser_go_upto_object},
+    {"parser_leave_object", 0, parser_leave_object},
     {"parser_go_into_array", 0, parser_go_into_array},
-    {"parser_go_upto_array", 0, parser_go_upto_array},
+    {"parser_leave_array", 0, parser_leave_array},
     {"parser_field", 1, parser_field},
-    {"parser_next_array_value", 0, parser_next_array_value},
+    {"parser_next", 0, parser_next},
     {"parser_get_boolean", 0, parser_get_boolean},
     {"parser_get_integer", 0, parser_get_integer},
     {"parser_get_double", 0, parser_get_double},
