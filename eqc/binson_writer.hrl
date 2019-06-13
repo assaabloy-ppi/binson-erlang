@@ -1,0 +1,7 @@
+-record('__fsid_t', {'__val' = eqc_c_undefined}).
+-record(imaxdiv_t, {quot = eqc_c_undefined, 'rem' = eqc_c_undefined}).
+-record(bbuf_e, {bsize = eqc_c_undefined, bptr = eqc_c_undefined}).
+-record(binson_state_s, {current_value = eqc_c_undefined, current_name = eqc_c_undefined, current_type = eqc_c_undefined, flags = eqc_c_undefined, array_depth = eqc_c_undefined}).
+-record(binson_parser_s, {type = eqc_c_undefined, depth = eqc_c_undefined, max_depth = eqc_c_undefined, buffer_size = eqc_c_undefined, buffer_used = eqc_c_undefined, buffer = eqc_c_undefined, error_flags = eqc_c_undefined, state = eqc_c_undefined, current_state = eqc_c_undefined, cb = eqc_c_undefined, cb_context = eqc_c_undefined}).
+-record(binson_writer_s, {buffer_size = eqc_c_undefined, buffer_used = eqc_c_undefined, buffer = eqc_c_undefined, error_flags = eqc_c_undefined}).
+-record(binson_value_e, {integer_value = eqc_c_undefined, bool_value = eqc_c_undefined, string_value = eqc_c_undefined, bytes_value = eqc_c_undefined, object_value = eqc_c_undefined, array_value = eqc_c_undefined, raw = eqc_c_undefined, double_value = eqc_c_undefined}).

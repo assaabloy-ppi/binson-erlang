@@ -4,19 +4,16 @@ This repo is an implementation of Binson (see [binson.org](http://binson.org/)) 
 
  - Binson module for Erlang.
  - Binson module for Elixir.
- - Erlang QuickCheck-mini model for binson-c-light testing using Erlang Binson implementation as reference.
-
+ - Erlang QuickCheck models for binson-c-light testing using Erlang Binson implementation as reference.
 
 ## Binson module for Erlang  
  Encoding function:
-
 
     binson:encode(Value).
 
  returns binary data.
 
  Decoding function:
-
 
     binson:decode(Binary).
 
@@ -86,9 +83,19 @@ Bytes -> Elixir binaries in :bin tagged tuple, example: {:bin, <<1,2,3>>}.
 Array -> Elixir lists, example: [1, "abc", ["sub", 1.0]].  
 Object -> Elixir maps, example: %{"field1" => "A", "field2" => [1,2,3]}.   
 
-## How to run Erlang QuickCheck Mini tests?
+## Erlang QuickCheck models
+QuickCheck models are used for testing binson-c-light implementation. Binson Erlang is used as reference.
+Before executing QC tests binson-c-light repository must be cloned at the same level as binson-erlang:
 
-- Install Erlang.
+      ~/git clone https://github.com/assaabloy-ppi/binson-c-light.git
+
+There are two models available:
+- model for free QuickCheck mini,
+- more powerful stateful model for commercial QuickCheck.
+
+### How to run Erlang QuickCheck Mini tests?
+
+
 - Install Erlang QuickCheck Mini from http://www.quviq.com/downloads/
 - Compile:
 
@@ -105,3 +112,16 @@ Object -> Elixir maps, example: %{"field1" => "A", "field2" => [1,2,3]}.
 	    ...
 	    2> binson_eqc:parser_test(100).
 	    ...
+
+
+### How to run Erlang QuickCheck tests?
+
+- Acquire Erlang QuickCheck license  from http://www.quviq.com/products/
+- Execute tests in Erlang shell:  
+
+           ~/binson-erlang$ cd eqc
+           ~/binson-erlang/eqc$ erl
+           Erlang/OTP 22 [erts-10.4.1] [source] [64-bit] [smp:4:4] [ds:4:4:10] [async-threads:1] [hipe]
+           Eshell V10.4.1  (abort with ^G)
+           1> c(binson_writer_eqc).
+           2> binson_writer_eqc:test_writer(100).
